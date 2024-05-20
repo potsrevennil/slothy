@@ -220,6 +220,29 @@ class ExampleKeccak(Example):
 
         slothy.optimize(start="slothy_start", end="slothy_end")
 
+class ExampleDilithium(Example):
+    def __init__(self, var="", arch=Arch_Armv7M, target=Target_CortexM7, timeout=None):
+        name = f"dilithium5_ntt"
+        infile = name
+        funcname = "pqcrystals_dilithium_ntt"
+
+        if var != "":
+            name += f"_{var}"
+            infile += f"_{var}"
+        name += f"_{target_label_dict[target]}"
+
+        super().__init__(infile, name, rename=True, arch=arch, target=target, timeout=timeout)
+
+    def core(self, slothy):
+        slothy.config.constraints.allow_reordering = False
+        slothy.config.constraints.allow_renaming = False
+        slothy.config.constraints.functional_only = True
+        slothy.config.inputs_are_outputs = True
+        slothy.config.reserved_regs = ["sp", "sp13"]
+        slothy.config.locked_registers =  ["sp", "sp13"]
+        slothy.optimize(start="layer123_start", end="layer123_end")
+
+
 class Example0(Example):
     def __init__(self):
         super().__init__("simple0")
@@ -1557,7 +1580,8 @@ def main():
                 #  fft_fixedpoint_radix4(),
                  
                 # ExampleDummy()
-                 ExampleKeccak(var="old")
+                 # ExampleKeccak(var="old")
+                ExampleDilithium(timeout=10)
                  ]
 
     all_example_names = [e.name for e in examples]

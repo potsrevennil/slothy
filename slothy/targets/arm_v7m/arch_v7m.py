@@ -367,7 +367,7 @@ class Instruction:
     # TODO Fill in instructions
     def is_load(self):
         """Indicates if an instruction is a load instruction"""
-        return self._is_instance_of([ ldr_with_imm, ldr_with_imm_stack, ldr_with_postinc, ldr_with_inc_writeback ])
+        return self._is_instance_of([ ldr, ldr_with_imm, ldr_with_imm_stack, ldr_with_postinc, ldr_with_inc_writeback ])
     def is_store(self):
         """Indicates if an instruction is a store instruction"""
         return self._is_instance_of([ str_with_imm, str_with_imm_stack, str_with_postinc ])
@@ -495,7 +495,7 @@ class Armv7mInstruction(Instruction):
                 f"([{g.group(1).lower()}{g.group(1)}]" +\
                 f"(?P<raw_{g.group(1)}{g.group(2)}>[0-9_][0-9_]*)|" +\
                 f"([{g.group(1).lower()}{g.group(1)}]<(?P<symbol_{g.group(1)}{g.group(2)}>\\w+)>))"
-        src = re.sub(r"<([RV])(\w+)>", pattern_transform, src)  # TODO What does this do?
+        src = re.sub(r"<([RS])(\w+)>", pattern_transform, src)  # TODO What does this do?
 
         # Replace <key> or <key0>, <key1>, ... with pattern
         def replace_placeholders(src, mnemonic_key, regexp, group_name):
@@ -572,7 +572,7 @@ class Armv7mInstruction(Instruction):
     def _infer_register_type(ptrn):
         if ptrn[0].upper() in ["R"]:
             return RegisterType.GPR
-        if ptrn[0].upper() in ["V"]:
+        if ptrn[0].upper() in ["S"]:
             return RegisterType.FPR
         if ptrn[0].upper() in ["T"]:
             return RegisterType.HINT
@@ -622,7 +622,7 @@ class Armv7mInstruction(Instruction):
         if ty == RegisterType.GPR:
             c = "r"
         elif ty == RegisterType.FPR:
-            c = "v"
+            c = "s"
         elif ty == RegisterType.HINT:
             c = "t"
         else:
@@ -638,7 +638,7 @@ class Armv7mInstruction(Instruction):
                 return f"{s[0].upper()}<{arg}>"
             return s[0].lower() + arg[1:]
         if ty == RegisterType.FPR:
-            if arg[0] != "v":
+            if arg[0] != "s":
                 return f"{s[0].upper()}<{arg}>"
             return s[0].lower() + arg[1:]
         if ty == RegisterType.HINT:
@@ -777,8 +777,8 @@ class Armv7mFPInstruction(Armv7mInstruction): # pylint: disable=missing-docstrin
 
 # FP
 class vmov_gpr(Armv7mFPInstruction): # pylint: disable=missing-docstring,invalid-name
-    pattern = "vmov <Rd>, <Ra>"
-    inputs = ["Ra"]
+    pattern = "vmov<width> <Rd>, <Sa>"
+    inputs = ["Sa"]
     outputs = ["Rd"]
 
 # Addition
@@ -918,6 +918,18 @@ class rors_short(Armv7mLogical): # pylint: disable=missing-docstring,invalid-nam
     modifiesFlags = True
 
 # Load 
+class ldr(Armv7mLoadInstruction): # pylint: disable=missing-docstring,invalid-name
+    pattern = "ldr<width> <Rd>, [<Ra>]"
+    inputs = ["Ra"]
+    outputs = ["Rd"]
+    @classmethod
+    def make(cls, src):
+        obj = Armv7mInstruction.build(cls, src)
+        obj.increment = None
+        obj.pre_index = None
+        obj.addr = obj.args_in[0]
+        return obj
+
 class ldr_with_imm(Armv7mLoadInstruction): # pylint: disable=missing-docstring,invalid-name
     pattern = "ldr<width> <Rd>, [<Ra>, <imm>]"
     inputs = ["Ra"]
