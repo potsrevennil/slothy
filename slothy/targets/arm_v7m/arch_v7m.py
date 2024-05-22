@@ -31,7 +31,7 @@ class RegisterType(Enum):
         stack_locations  = [ f"STACK{i}"  for i in range(8) ]
         fpstack_locations  = [ f"STACK{i}"  for i in range(8) ]
 
-        gprs_normal  = [ f"r{i}" for i in range(15) ]
+        gprs_normal  = [ f"r{i}" for i in range(15) if i is not 13 ]
         fprs_normal  = [ f"s{i}" for i in range(31) ]
 
         gprs_extra  = []

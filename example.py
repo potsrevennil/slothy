@@ -231,17 +231,17 @@ class ExampleDilithium(Example):
             infile += f"_{var}"
         name += f"_{target_label_dict[target]}"
 
-        super().__init__(infile, name, rename=True, arch=arch, target=target, timeout=timeout)
+        super().__init__(infile, name, rename=True, arch=arch, target=target, timeout=timeout, funcname=funcname)
 
     def core(self, slothy):
-        slothy.config.constraints.allow_reordering = False
-        slothy.config.constraints.allow_renaming = False
-        slothy.config.constraints.functional_only = True
+        slothy.config.constraints.allow_reordering = True
+        slothy.config.constraints.allow_renaming = True
+        slothy.config.constraints.functional_only = False
+        slothy.config.outputs = ["r0", "r10"]
         slothy.config.inputs_are_outputs = True
         slothy.config.reserved_regs = ["sp", "sp13"]
         slothy.config.locked_registers =  ["sp", "sp13"]
         slothy.optimize(start="layer123_start", end="layer123_end")
-
 
 class Example0(Example):
     def __init__(self):
@@ -1579,9 +1579,9 @@ def main():
                 #  # Fixed point
                 #  fft_fixedpoint_radix4(),
                  
-                # ExampleDummy()
+                # ExampleDummy(),
                  # ExampleKeccak(var="old")
-                ExampleDilithium(timeout=10)
+                ExampleDilithium()
                  ]
 
     all_example_names = [e.name for e in examples]

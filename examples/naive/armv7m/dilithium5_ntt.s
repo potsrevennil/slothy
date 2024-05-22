@@ -242,7 +242,6 @@ pqcrystals_dilithium_ntt:
   add.w temp_l, ptr_p, #32*strincr // 32 iterations
   vmov s9, temp_l
   1:
-    .rept 2
 layer123_start:
     ldr.w pol0, [ptr_p]
     ldr.w pol1, [ptr_p, #1*distance/4]
@@ -263,9 +262,8 @@ layer123_start:
     str.w pol6, [ptr_p, #6*distance/4]
     str.w pol7, [ptr_p, #7*distance/4]
     str.w pol0, [ptr_p], #strincr
-layer123_end:
-    .endr
     vmov temp_l, s9
+layer123_end:
     cmp.w ptr_p, temp_l
     bne 1b
   
