@@ -31,7 +31,10 @@ import sys
 
 from slothy import Slothy, Config
 
+import slothy.targets.arm_v7m.arch_v7m as Arch_Armv7M
 import slothy.targets.arm_v81m.arch_v81m as Arch_Armv81M
+import slothy.targets.arm_v7m.cortex_m4 as Target_CortexM4
+import slothy.targets.arm_v7m.cortex_m7 as Target_CortexM7
 import slothy.targets.arm_v81m.cortex_m55r1 as Target_CortexM55r1
 import slothy.targets.arm_v81m.cortex_m85r1 as Target_CortexM85r1
 
@@ -43,6 +46,8 @@ import slothy.targets.aarch64.apple_m1_icestorm_experimental as Target_AppleM1_i
 
 target_label_dict = {Target_CortexA55: "a55",
                      Target_CortexA72: "a72",
+                     Target_CortexM4: "m4",
+                     Target_CortexM7: "m7",
                      Target_CortexM55r1: "m55",
                      Target_CortexM85r1: "m85",
                      Target_AppleM1_firestorm: "m1_firestorm",
@@ -76,6 +81,8 @@ class Example():
         subfolder = ""
         if self.arch == AArch64_Neon:
             subfolder = "aarch64/"
+        elif self.arch == Arch_Armv7M:
+            subfolder = "armv7m/"
         self.infile_full = f"examples/naive/{subfolder}{self.infile}.s"
         self.outfile_full = f"examples/opt/{subfolder}{self.outfile}.s"
         self.name = name
@@ -156,6 +163,57 @@ class Example():
 
         if dry_run is False:
             slothy.write_source_to_file(self.outfile_full)
+
+class ExampleDummy(Example):
+    def __init__(self, var="", arch=Arch_Armv7M, target=Target_CortexM7, timeout=None):
+        name = f"dummy"
+        infile = name
+
+        if var != "":
+            name += f"_{var}"
+            infile += f"_{var}"
+        name += f"_{target_label_dict[target]}"
+
+        super().__init__(infile, name, rename=True, arch=arch, target=target, timeout=timeout)
+
+    def core(self, slothy):
+        slothy.config.inputs_are_outputs = True
+        slothy.config.allow_useless_instructions = True
+        slothy.optimize(start="slothy_start", end="slothy_end")
+
+class ExampleKeccak(Example):
+    def __init__(self, var="", arch=Arch_Armv7M, target=Target_CortexM7, timeout=None):
+        name = f"keccakf1600"
+        infile = name
+        funcname = "KeccakF1600_StatePermute"
+
+        if var != "":
+            name += f"_{var}"
+            infile += f"_{var}"
+            funcname += f"_{var}"
+        name += f"_{target_label_dict[target]}"
+
+        super().__init__(infile, name, funcname=funcname, rename=True, arch=arch, target=target, timeout=timeout)
+
+    def core(self, slothy):
+        slothy.config.inputs_are_outputs = True
+        # slothy.config.constraints.allow_reordering = False
+        # slothy.config.constraints.allow_renaming = False
+        # slothy.config.constraints.functional_only = True
+        slothy.config.variable_size = True
+        slothy.config.outputs = ["flags"]
+        slothy.config.reserved_regs = ["sp", "r13"]
+        slothy.config.locked_registers = ["sp", "r13"]
+
+        slothy.config.split_heuristic = True
+        slothy.config.split_heuristic_preprocess_naive_interleaving = True
+        slothy.config.split_heuristic_factor = 25
+        slothy.config.split_heuristic_repeat = 2
+        slothy.config.split_heuristic_optimize_seam = 4
+        slothy.config.split_heuristic_stepsize = 0.05
+
+        slothy.optimize(start="slothy_start", end="slothy_end")
+
 
 class Example0(Example):
     def __init__(self):
@@ -1492,6 +1550,9 @@ def main():
                  fft_floatingpoint_radix4(),
                  # Fixed point
                  fft_fixedpoint_radix4(),
+                 
+                  ExampleDummy(),
+                  ExampleKeccak(var="old")
                  ]
 
     all_example_names = [e.name for e in examples]
